@@ -17,12 +17,14 @@ public class YuyueGuaHao {
 	public static void main(String[] args) {
 		String CHANKEId = "1442_1"; //产科的id
 		String testId = "1572_1"; //测试科室id
-		String keid = testId;
+		String keid = CHANKEId;
 		String detectURLStart = "http://www.bjguahao.gov.cn/comm/ghao.php?hpid=104&keid=" + keid + "&date1=2013-10-";
 		String httpPageResultString = null;
 		String detectURL = null;
         int i = 14; // i = 14 -> 18
+        int total = 0;
 		do {
+			total++;
 			if (i > 18) i = 14;
 			detectURL = detectURLStart + i;
         	httpPageResultString = getGetHtml(detectURL, "UTF-8");
@@ -32,14 +34,14 @@ public class YuyueGuaHao {
             } else { //正常打开预约信息页面
         	    if (httpPageResultString.contains("预约挂号</a>")) {
             	    System.out.println("有号了：" + new java.util.Date() + " detect url: " + detectURL);
-        	        javax.swing.JOptionPane.showInputDialog("现在有号");
+        	        javax.swing.JOptionPane.showInputDialog("现在有号，尝试次数："+total);
                 } else {
                 	System.out.println("还没号：" + new java.util.Date() + " detect url: " + detectURL);
                 }
         	}
             i++;
 		    try {
-				Thread.sleep(5000);
+				Thread.sleep(16000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -53,6 +55,9 @@ public class YuyueGuaHao {
 			method.getParams().setParameter(HttpMethodParams.HTTP_CONTENT_CHARSET, encode);
 		try {
 			HttpClient httpClient = new HttpClient();
+			httpClient.getHttpConnectionManager().getParams()
+		    .setConnectionTimeout(8000);
+			httpClient.getHttpConnectionManager().getParams().setSoTimeout(8000);
 			method.addRequestHeader("Referer", "http://www.bjguahao.gov.cn/comm/yyks.php?hpid=104");
 			method.addRequestHeader("Cookie", "xyz"); // need change your cookie
 			httpClient.executeMethod(method);
