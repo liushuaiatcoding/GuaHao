@@ -10,39 +10,37 @@ $initStateHard = array(
 		"guanyu" => array(2,1,1,2,'G'),
 		"huanggai" => array(2,3,2,1,'H'),
 		"zu1" => array(3,1,1,1,'a'),
-// 		"zu1" => array(4,1,1,1,'a'),
 		"zu2" => array(3,2,1,1,'b'),
 		"zu3" => array(4,0,1,1,'c'),
-// 		"zu3" => array(4,1,1,1,'c'),
 		"zu4" => array(4,3,1,1,'d')
 );
 
-$initStateHardDengjia = array(
+$initStateEasy = array(
 		"zhangfei" => array(0,0,2,1,'Z'),
-		"caocao" => array(0,1,2,2,'C'),
-		"zhaoyun" => array(2,0,2,1,'Y'),
-		"machao" => array(0,3,2,1,'M'),
-		"guanyu" => array(2,1,1,2,'G'),
-		"huanggai" => array(2,3,2,1,'H'),
-		"zu1" => array(3,1,1,1,'a'),
+		"caocao" => array(3,0,2,2,'C'),
+		"zhaoyun" => array(0,1,2,1,'Y'),
+		"machao" => array(0,2,2,1,'M'),
+		"guanyu" => array(2,2,1,2,'G'),
+		"huanggai" => array(0,3,2,1,'H'),
+		"zu1" => array(4,2,1,1,'a'),
 		// 		"zu1" => array(4,1,1,1,'a'),
-		"zu2" => array(3,2,1,1,'b'),
-		"zu3" => array(4,0,1,1,'c'),
+		"zu2" => array(4,3,1,1,'b'),
+		"zu3" => array(2,0,1,1,'c'),
 		// 		"zu3" => array(4,1,1,1,'c'),
-		"zu4" => array(4,3,1,1,'d')
+		"zu4" => array(2,1,1,1,'d')
 );
 
 
-
-putToProcessingQueue($initStateHard, 0);
+putToProcessingQueue($initStateEasy, 0);
 $times = 0; //控制运行次数，理解代码
 while(count($processingStateArray) > 0 && $times < 100000000) {
 	$currentState = array_shift($processingStateArray);
 	echo "status num = ", $currentState["stateNum"], " fatherStateNum = ", $currentState["fatherStateNum"], "\n";
-	visualizeQipan($currentState["status"]);
+// 	visualizeQipan($currentState["status"]);
 	if (isEndState($currentState["status"])) {
 		visualizeQipan($currentState["status"]);
 		echo "find the huarongdao solution and successful state num is ", $currentState["stateNum"], "\n";
+		findTheSolutionPath($currentState);
 		return ;
 	} else if (isExistingStateInOutsideQueue($currentState)) {
 		continue;
@@ -57,7 +55,27 @@ while(count($processingStateArray) > 0 && $times < 100000000) {
 	$times++;
 }
 
+function findTheSolutionPath($currentState) {
+	global $outsideStateArray;
+    echo "whole different state num is ". count($outsideStateArray). "\n";
+    visualizeQipan($currentState["status"]);
+    $fatherStateNum = $currentState["fatherStateNum"];
+	while ($fatherStateNum != 0) {
+		echo "---->".$fatherStateNum."\n";
+		$fatherState = findStateByStateNum($fatherStateNum);
+		visualizeQipan($fatherState["status"]);
+		$fatherStateNum = $fatherState["fatherStateNum"];
+	}
+}
 
+function findStateByStateNum($stateNum) { // 根据任意一个状态id找到这个状态
+	global $outsideStateArray;
+	foreach($outsideStateArray as $singleState) {
+		if ($singleState["stateNum"] == $stateNum) {
+			return $singleState;
+		}
+	}
+}
 
 function putToProcessingQueue($state, $fatherStateNum) {
 	global $processingStateArray;
@@ -283,20 +301,6 @@ function visualizeQipan($state) {
 // );
 
 
-// $initStateEasy1 = array(
-// 		"zhangfei" => array(0,0,2,1,'Z'),
-// 		"caocao" => array(3,0,2,2,'C'),
-// 		"zhaoyun" => array(0,1,2,1,'Y'),
-// 		"machao" => array(0,2,2,1,'M'),
-// 		"guanyu" => array(2,2,1,2,'G'),
-// 		"huanggai" => array(0,3,2,1,'H'),
-// 		"zu1" => array(4,2,1,1,'a'),
-// 		// 		"zu1" => array(4,1,1,1,'a'),
-// 		"zu2" => array(4,3,1,1,'b'),
-// 		"zu3" => array(2,0,1,1,'c'),
-// 		// 		"zu3" => array(4,1,1,1,'c'),
-// 		"zu4" => array(2,1,1,1,'d')
-// );
 
 // $initStateEasy2 = array(
 // 		"zhangfei" => array(1,2,2,1,'Z'),
