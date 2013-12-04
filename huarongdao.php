@@ -3,37 +3,43 @@ $processingStateArray = array();
 $outsideStateArray = array();
 $stateNum = 0;
 $initStateHard = array(
-		"zhangfei" => array(0,0,2,1,'Z'),
-		"caocao" => array(0,1,2,2,'C'),
-		"zhaoyun" => array(0,3,2,1,'Y'),
-		"machao" => array(2,0,2,1,'M'),
-		"guanyu" => array(2,1,1,2,'G'),
-		"huanggai" => array(2,3,2,1,'H'),
-		"zu1" => array(3,1,1,1,'a'),
-		"zu2" => array(3,2,1,1,'b'),
-		"zu3" => array(4,0,1,1,'c'),
-		"zu4" => array(4,3,1,1,'d')
+		"zhangfei" => array(0,0,2,1,'Z','1'), // 分别代表：起始横坐标，纵坐标，横向宽度，纵向宽度，区分棋子名称，唯一key
+		"caocao" => array(0,1,2,2,'C','4'),
+		"zhaoyun" => array(0,3,2,1,'Y','1'),
+		"machao" => array(2,0,2,1,'M','1'),
+		"guanyu" => array(2,1,1,2,'G','3'),
+		"huanggai" => array(2,3,2,1,'H','1'),
+		"zu1" => array(3,1,1,1,'a','2'),
+		"zu2" => array(3,2,1,1,'b','2'),
+		"zu3" => array(4,0,1,1,'c','2'),
+		"zu4" => array(4,3,1,1,'d','2')
 );
 
 $initStateEasy = array(
-		"zhangfei" => array(0,0,2,1,'Z'),
-		"caocao" => array(3,0,2,2,'C'),
-		"zhaoyun" => array(0,1,2,1,'Y'),
-		"machao" => array(0,2,2,1,'M'),
-		"guanyu" => array(2,2,1,2,'G'),
-		"huanggai" => array(0,3,2,1,'H'),
-		"zu1" => array(4,2,1,1,'a'),
+		"zhangfei" => array(0,0,2,1,'Z','1'),
+		"caocao" => array(3,0,2,2,'C','4'),
+		"zhaoyun" => array(0,1,2,1,'Y','1'),
+		"machao" => array(0,2,2,1,'M','1'),
+		"guanyu" => array(2,2,1,2,'G','3'),
+		"huanggai" => array(0,3,2,1,'H','1'),
+		"zu1" => array(4,2,1,1,'a','2'),
 		// 		"zu1" => array(4,1,1,1,'a'),
-		"zu2" => array(4,3,1,1,'b'),
-		"zu3" => array(2,0,1,1,'c'),
+		"zu2" => array(4,3,1,1,'b','2'),
+		"zu3" => array(2,0,1,1,'c','2'),
 		// 		"zu3" => array(4,1,1,1,'c'),
-		"zu4" => array(2,1,1,1,'d')
+		"zu4" => array(2,1,1,1,'d','2')
 );
+// start profiling
+// xhprof_enable();
 
+// keyOfState($initStateEasy);
+// visualizeQipan($initStateEasy);
 
-putToProcessingQueue($initStateEasy, 0);
-$times = 0; //控制运行次数，理解代码
-while(count($processingStateArray) > 0 && $times < 100000000) {
+// keyOfState($initStateHard);
+// visualizeQipan($initStateHard);
+putToProcessingQueue($initStateHard, 0);
+// $runningTimes = 0;
+while(count($processingStateArray) > 0) {
 	$currentState = array_shift($processingStateArray);
 	echo "status num = ", $currentState["stateNum"], " fatherStateNum = ", $currentState["fatherStateNum"], "\n";
 // 	visualizeQipan($currentState["status"]);
@@ -46,26 +52,47 @@ while(count($processingStateArray) > 0 && $times < 100000000) {
 		continue;
 	} else {
 		$currentStateDetail = $currentState["status"];
+		
+		// 构造当前局面
+		$forPrintArray = array();
+		foreach ($currentStateDetail as $qiziNameTmp => $qiziZuobiaoTmp) {
+			for ($i=0; $i<$qiziZuobiaoTmp[2]; $i++) {
+				for ($j=0; $j<$qiziZuobiaoTmp[3]; $j++) {
+					$forPrintArray[$qiziZuobiaoTmp[0]+$i][$qiziZuobiaoTmp[1]+$j] = $qiziZuobiaoTmp[4];
+				}
+			}
+		}
+		
 		foreach($currentStateDetail as $name => $zuobiao) { // 针对每一个棋子进行一次四个方向的移动，将合法的状态压存起来
-		    validAndPushToProcessingQueue($currentStateDetail, $name, $currentState["stateNum"]);
+		    validAndPushToProcessingQueue($currentStateDetail, $name, $currentState["stateNum"], $forPrintArray);
 		}
 	}
 	echo "total state in processing queue is : ", count($processingStateArray), "\n";
 	echo "----------------------------------------------", "\n";
-	$times++;
+// 	$runningTimes++;
 }
 
+
+// stop profiler
+// $xhprof_data = xhprof_disable();
+
+// display raw xhprof data for the profiler run
+// print_r($xhprof_data);
+
 function findTheSolutionPath($currentState) {
+	$totalFindingNum = 0;
 	global $outsideStateArray;
     echo "whole different state num is ". count($outsideStateArray). "\n";
     visualizeQipan($currentState["status"]);
     $fatherStateNum = $currentState["fatherStateNum"];
 	while ($fatherStateNum != 0) {
+		$totalFindingNum++;
 		echo "---->".$fatherStateNum."\n";
 		$fatherState = findStateByStateNum($fatherStateNum);
 		visualizeQipan($fatherState["status"]);
 		$fatherStateNum = $fatherState["fatherStateNum"];
 	}
+	echo "Total spend ",$totalFindingNum, " times to find the final state\n";
 }
 
 function findStateByStateNum($stateNum) { // 根据任意一个状态id找到这个状态
@@ -95,18 +122,37 @@ function isEndState($state) {
 
 function isExistingStateInOutsideQueue($tempState) {
 	global $outsideStateArray;
-	if (count($outsideStateArray) != 0) {// 只有在outsiteStateArray不为初始状态时才可能是出现过
-		foreach($outsideStateArray as $outsideState) {
-	        if (equalState($outsideState["status"], $tempState["status"])) {
-	           	return true;
-	        }
-	    }
-	}
-	$outsideStateArray[] = $tempState;
+// 	if (count($outsideStateArray) != 0) {// 只有在outsiteStateArray不为初始状态时才可能是出现过
+// 		foreach($outsideStateArray as $outsideState) {
+// 	        if (equalState($outsideState["status"], $tempState["status"])) {
+// 	           	return true;
+// 	        }
+// 	    }
+        if (isset($outsideStateArray[keyOfState($tempState["status"])])) {
+        	    return true;
+        }
+// 	}
+	// 如果不存在，则加入到见过的状态序列
+	$outsideStateArray[keyOfState($tempState["status"])] = $tempState;
 	return false;
 }
 
-function equalState($state1, $state2) { // TODO 这个可以优化从而大幅度剪枝。不做剪枝一个小时都跑不出来
+function keyOfState($currentStateDetail) { // 根据一个状态找到对应的hashKey，这是为了极大的加速状态匹配	
+	// 构造当前局面
+	$array20 = array_fill(0,20,0);
+	foreach ($currentStateDetail as $qiziNameTmp => $qiziZuobiaoTmp) {
+		for ($i=0; $i<$qiziZuobiaoTmp[2]; $i++) {
+			for ($j=0; $j<$qiziZuobiaoTmp[3]; $j++) {
+				// $forPrintArray[$qiziZuobiaoTmp[0]+$i][$qiziZuobiaoTmp[1]+$j] = $qiziZuobiaoTmp[5]; // 存放唯一key
+				$array20[($qiziZuobiaoTmp[0]+$i)*4+$qiziZuobiaoTmp[1]+$j] = $qiziZuobiaoTmp[5]; //// 存放唯一key
+			}
+		}
+	}
+// 	print_r($array20);
+	return implode($array20);
+}
+
+function equalState($state1, $state2) { // TODO 这个可以优化从而大幅度剪枝。不做剪枝一个小时都跑不出来，12.4 profile证明这个函数占据了绝大部分执行时间
 	foreach ($state1 as $name => $zuobiao) {
 		// 等价状态检查，只要发现跟自己长度一样的棋子和自己在同一个位置上，针对这个棋子的判断就算一样，这里判断竖着的棋子
 		$dengjiaState1 = array("zhangfei", "zhaoyun", "machao", "huanggai"); // 这里的硬编码需要改成根据横竖长度自动match
@@ -142,16 +188,7 @@ function isEqualTwoArray($array1, $array2) {
 	return true;
 }
 
-function validAndPushToProcessingQueue($state, $qiziName, $fatherStateNum) {
-	$forPrintArray = array();
-	foreach ($state as $qiziNameTmp => $qiziZuobiaoTmp) {
-		for ($i=0; $i<$qiziZuobiaoTmp[2]; $i++) {
-			for ($j=0; $j<$qiziZuobiaoTmp[3]; $j++) {
-				$forPrintArray[$qiziZuobiaoTmp[0]+$i][$qiziZuobiaoTmp[1]+$j] = $qiziZuobiaoTmp[4];
-			}
-		}
-	}
-	
+function validAndPushToProcessingQueue($state, $qiziName, $fatherStateNum, $forPrintArray) {
 	$qiziZuobiao = $state[$qiziName];
 	$tempState = validRight($state, $qiziName, $qiziZuobiao, $forPrintArray);
 	if ($tempState != null) {
@@ -272,7 +309,7 @@ function visualizeQipan($state) {
 }
 
 
-
+// 下面这块需要用单元测试啊
 // echo "-----------------------", "\n";
 // valid($initState, "zhangfei");
 // echo "-----------------------", "\n";
