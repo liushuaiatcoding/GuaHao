@@ -8,7 +8,7 @@ $initStateHard = array(
 		"zhaoyun" => array(0,3,2,1,'Y','1'),
 		"machao" => array(2,0,2,1,'M','1'),
 		"guanyu" => array(2,1,1,2,'G','3'),
-		"huanggai" => array(2,3,2,1,'H','1'),
+		"huangzhong" => array(2,3,2,1,'H','1'),
 		"zu1" => array(3,1,1,1,'a','2'),
 		"zu2" => array(3,2,1,1,'b','2'),
 		"zu3" => array(4,0,1,1,'c','2'),
@@ -21,7 +21,7 @@ $initStateEasy = array(
 		"zhaoyun" => array(0,1,2,1,'Y','1'),
 		"machao" => array(0,2,2,1,'M','1'),
 		"guanyu" => array(2,2,1,2,'G','3'),
-		"huanggai" => array(0,3,2,1,'H','1'),
+		"huangzhong" => array(0,3,2,1,'H','1'),
 		"zu1" => array(4,2,1,1,'a','2'),
 		// 		"zu1" => array(4,1,1,1,'a'),
 		"zu2" => array(4,3,1,1,'b','2'),
@@ -29,30 +29,21 @@ $initStateEasy = array(
 		// 		"zu3" => array(4,1,1,1,'c'),
 		"zu4" => array(2,1,1,1,'d','2')
 );
-// start profiling
-// xhprof_enable();
-
-// keyOfState($initStateEasy);
-// visualizeQipan($initStateEasy);
-
-// keyOfState($initStateHard);
-// visualizeQipan($initStateHard);
+xhprof_enable();
 putToProcessingQueue($initStateHard, 0);
-// $runningTimes = 0;
 while(count($processingStateArray) > 0) {
 	$currentState = array_shift($processingStateArray);
 	echo "status num = ", $currentState["stateNum"], " fatherStateNum = ", $currentState["fatherStateNum"], "\n";
-// 	visualizeQipan($currentState["status"]);
 	if (isEndState($currentState["status"])) {
 		visualizeQipan($currentState["status"]);
 		echo "find the huarongdao solution and successful state num is ", $currentState["stateNum"], "\n";
 		findTheSolutionPath($currentState);
-		return ;
+		break ;
 	} else if (isExistingStateInOutsideQueue($currentState)) {
 		continue;
 	} else {
 		$currentStateDetail = $currentState["status"];
-		
+
 		// 构造当前局面
 		$forPrintArray = array();
 		foreach ($currentStateDetail as $qiziNameTmp => $qiziZuobiaoTmp) {
@@ -69,15 +60,19 @@ while(count($processingStateArray) > 0) {
 	}
 	echo "total state in processing queue is : ", count($processingStateArray), "\n";
 	echo "----------------------------------------------", "\n";
-// 	$runningTimes++;
 }
 
-
-// stop profiler
-// $xhprof_data = xhprof_disable();
-
-// display raw xhprof data for the profiler run
-// print_r($xhprof_data);
+$xhprof_data = xhprof_disable();
+$XHPROF_ROOT = "/opt/www/xhprof.traffic.meituan.com/xhprof";                                                                                                    
+include_once $XHPROF_ROOT . "/xhprof_lib/utils/xhprof_lib.php";                                                                                                 
+include_once $XHPROF_ROOT . "/xhprof_lib/utils/xhprof_runs.php";                                                                                                
+$xhprof_runs = new XHProfRuns_Default();                                                                                                                        
+$run_id = $xhprof_runs->save_run($xhprof_data, "xhprof_foo");                                                                                                                                                                                                                                                                
+echo "---------------\n".                                                                                                                                            
+"Assuming you have set up the http based UI for \n".                                                                                                                 
+"XHProf at some address, you can view run at \n".                                                                                                                    
+"http://xhprof.traffic.meituan.com/index.php?run=$run_id&source=xhprof_foo\n".                                                                    
+"---------------\n";                                                                                                                        
 
 function findTheSolutionPath($currentState) {
 	$totalFindingNum = 0;
@@ -122,16 +117,9 @@ function isEndState($state) {
 
 function isExistingStateInOutsideQueue($tempState) {
 	global $outsideStateArray;
-// 	if (count($outsideStateArray) != 0) {// 只有在outsiteStateArray不为初始状态时才可能是出现过
-// 		foreach($outsideStateArray as $outsideState) {
-// 	        if (equalState($outsideState["status"], $tempState["status"])) {
-// 	           	return true;
-// 	        }
-// 	    }
         if (isset($outsideStateArray[keyOfState($tempState["status"])])) {
         	    return true;
         }
-// 	}
 	// 如果不存在，则加入到见过的状态序列
 	$outsideStateArray[keyOfState($tempState["status"])] = $tempState;
 	return false;
@@ -143,43 +131,14 @@ function keyOfState($currentStateDetail) { // 根据一个状态找到对应的h
 	foreach ($currentStateDetail as $qiziNameTmp => $qiziZuobiaoTmp) {
 		for ($i=0; $i<$qiziZuobiaoTmp[2]; $i++) {
 			for ($j=0; $j<$qiziZuobiaoTmp[3]; $j++) {
-				// $forPrintArray[$qiziZuobiaoTmp[0]+$i][$qiziZuobiaoTmp[1]+$j] = $qiziZuobiaoTmp[5]; // 存放唯一key
 				$array20[($qiziZuobiaoTmp[0]+$i)*4+$qiziZuobiaoTmp[1]+$j] = $qiziZuobiaoTmp[5]; //// 存放唯一key
 			}
 		}
 	}
-// 	print_r($array20);
 	return implode($array20);
 }
 
-function equalState($state1, $state2) { // TODO 这个可以优化从而大幅度剪枝。不做剪枝一个小时都跑不出来，12.4 profile证明这个函数占据了绝大部分执行时间
-	foreach ($state1 as $name => $zuobiao) {
-		// 等价状态检查，只要发现跟自己长度一样的棋子和自己在同一个位置上，针对这个棋子的判断就算一样，这里判断竖着的棋子
-		$dengjiaState1 = array("zhangfei", "zhaoyun", "machao", "huanggai"); // 这里的硬编码需要改成根据横竖长度自动match
-		$dengjiaState2 = array("zu1", "zu2", "zu3", "zu4");
-		if (in_array($name, $dengjiaState1)) {
-			$equalStatus = false;
-			foreach ($dengjiaState1 as $dengjiaName1) {
-				if (isEqualTwoArray($zuobiao, $state2[$dengjiaName1])) { //与某一个等价类一样，则标记为一样，并退出本棋子的比较
-					$equalStatus = true;
-				    break;
-				}
-			}
-			if (!$equalStatus) { return false; }
-		} else if (in_array($name, $dengjiaState2)) { // 兵在等价位置
-			$equalStatus2 = false;
-			foreach ($dengjiaState2 as $dengjiaName2) {
-				if (isEqualTwoArray($zuobiao, $state2[$dengjiaName2])) {
-					$equalStatus2 = true;
-				    break;
-				}
-			}
-			if (!$equalStatus2) { return false; }
-		} else 
-		if (!isEqualTwoArray($zuobiao, $state2[$name])) return false;
-	}
-	return true;
-}
+
 
 function isEqualTwoArray($array1, $array2) {
 	for ($i=0; $i<count($array1)-1; $i++) { // 不判断最后一个位置，因为那个是代表元素画图用的
@@ -224,7 +183,6 @@ function validRight($state, $qiziName, $qiziZuobiao, $statusArray) {
 			return null;
 		}
 	}
-// 	echo "right","\n";
     $newState = arrayDeepCopy($state);
     $newState[$qiziName][1] = $newState[$qiziName][1]+1;
     return $newState;
@@ -239,25 +197,20 @@ function validLeft($state, $qiziName, $qiziZuobiao, $statusArray) {
 			return null;
 		}
 	}
-// 	echo "left","\n";
 	$newState = arrayDeepCopy($state);
 	$newState[$qiziName][1] = $newState[$qiziName][1]-1;
 	return $newState;
 }
 
 function validDown($state, $qiziName, $qiziZuobiao, $statusArray) {
-	// valid down
 	if ($qiziZuobiao[0]+$qiziZuobiao[2] == 5) {// 越界
 		return null;
 	}
 	for ($j=0; $j<$qiziZuobiao[3]; $j++) {
-// 		echo $qiziZuobiao[0]+$qiziZuobiao[2], " ",  $qiziZuobiao[1]+$j, " ", 
-// 		        $statusArray[$qiziZuobiao[0]+$qiziZuobiao[2]][$qiziZuobiao[1]+$j], "\n";
 		if (!empty($statusArray[$qiziZuobiao[0]+$qiziZuobiao[2]][$qiziZuobiao[1]+$j])) {//和其他下方棋子有交集
 		    return null;
 		}
 	}
-// 	echo "down","\n";
 	$newState = arrayDeepCopy($state);
 	$newState[$qiziName][0] = $newState[$qiziName][0]+1;
 	return $newState;
@@ -273,7 +226,6 @@ function validTop($state, $qiziName, $qiziZuobiao, $statusArray) {
 			return null;
 		}
 	}
-// 	echo "top","\n";
 	$newState = arrayDeepCopy($state);
 	$newState[$qiziName][0] = $newState[$qiziName][0]-1;
 	return $newState;
@@ -308,48 +260,31 @@ function visualizeQipan($state) {
 	echo "====\n";
 }
 
-
-// 下面这块需要用单元测试啊
-// echo "-----------------------", "\n";
-// valid($initState, "zhangfei");
-// echo "-----------------------", "\n";
-// valid($initState, "zu1");
-// echo "-----------------------", "\n";
-// valid($initState, "zu2");
-// echo "-----------------------", "\n";
-// valid($initState, "zu3");
-// echo "-----------------------", "\n";
-// valid($initState, "zu4");
-// if (equalState($initState, $initState2)) {
-// 	echo "equal", "\n";
-// } else echo "not equal", "\n";
-//print_r($initState);
-// $initState2 = array(
-// 		"zhangfei" => array(0,0,2,1,'Z'),
-// 		"caocao" => array(0,1,2,2,'C'),
-// 		"zhaoyun" => array(0,3,2,1,'Y'),
-// 		"machao" => array(2,0,2,1,'M'),
-// 		"guanyu" => array(2,1,1,2,'G'),
-// 		"huanggai" => array(2,3,2,1,'H'),
-// 		"zu1" => array(3,1,1,1,'a'),
-// 		"zu2" => array(3,2,1,1,'b'),
-// 		"zu3" => array(4,0,1,1,'c'),
-// 		"zu4" => array(4,3,1,1,'d')
-// );
-
-
-
-// $initStateEasy2 = array(
-// 		"zhangfei" => array(1,2,2,1,'Z'),
-// 		"caocao" => array(0,0,2,2,'C'),
-// 		"zhaoyun" => array(3,3,2,1,'Y'),
-// 		"machao" => array(1,3,2,1,'M'),
-// 		"guanyu" => array(0,2,1,2,'G'),
-// 		"huanggai" => array(3,2,2,1,'H'),
-// 		"zu1" => array(2,0,1,1,'a'),
-// 		// 		"zu1" => array(4,1,1,1,'a'),
-// 		"zu2" => array(2,1,1,1,'b'),
-// 		"zu3" => array(3,0,1,1,'c'),
-// 		// 		"zu3" => array(4,1,1,1,'c'),
-// 		"zu4" => array(3,1,1,1,'d')
-// );
+// function equalState($state1, $state2) { // TODO 这个可以优化从而大幅度剪枝。不做剪枝一个小时都跑不出来，12.4 profile证明这个函数占据了绝大部分执行时间
+// 	foreach ($state1 as $name => $zuobiao) {
+// 		// 等价状态检查，只要发现跟自己长度一样的棋子和自己在同一个位置上，针对这个棋子的判断就算一样，这里判断竖着的棋子
+// 		$dengjiaState1 = array("zhangfei", "zhaoyun", "machao", "huangzhong"); // 这里的硬编码需要改成根据横竖长度自动match
+// 		$dengjiaState2 = array("zu1", "zu2", "zu3", "zu4");
+// 		if (in_array($name, $dengjiaState1)) {
+// 			$equalStatus = false;
+// 			foreach ($dengjiaState1 as $dengjiaName1) {
+// 				if (isEqualTwoArray($zuobiao, $state2[$dengjiaName1])) { //与某一个等价类一样，则标记为一样，并退出本棋子的比较
+// 					$equalStatus = true;
+// 				    break;
+// 				}
+// 			}
+// 			if (!$equalStatus) { return false; }
+// 		} else if (in_array($name, $dengjiaState2)) { // 兵在等价位置
+// 			$equalStatus2 = false;
+// 			foreach ($dengjiaState2 as $dengjiaName2) {
+// 				if (isEqualTwoArray($zuobiao, $state2[$dengjiaName2])) {
+// 					$equalStatus2 = true;
+// 				    break;
+// 				}
+// 			}
+// 			if (!$equalStatus2) { return false; }
+// 		} else
+	// 		if (!isEqualTwoArray($zuobiao, $state2[$name])) return false;
+	// 	}
+	// 	return true;
+	// }
